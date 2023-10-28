@@ -1,6 +1,8 @@
 const express = require('express')
 require('dotenv').config()
 const cors = require('cors')
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 const app = express()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000
@@ -8,8 +10,14 @@ const port = process.env.PORT || 5000
 // MTED1e8a9NQHXJ3k
 // geniusCarDB
 // middleware
-app.use(cors())
+app.use(cors(
+    {
+        origin: ['http://localhost:5173'],
+        credentials: true
+    }
+))
 app.use(express.json())
+app.use(cookieParser())
 
 app.get('/', (req, res) => {
     res.send('hello car')
@@ -47,6 +55,10 @@ async function run() {
             res.send(result)
         })
         app.get('/cart', async (req, res) => {
+            let query = {}
+            if (req.query?.email) {
+                query = { email: req.query.email }
+            }
             const cursor = cartCollections.find()
             const result = await cursor.toArray()
             console.log(result);
@@ -57,6 +69,18 @@ async function run() {
             const result = await cartCollections.insertOne(services)
             res.send(result)
         })
+        app.post("/jwt", (req, res) => {
+            const body = req.body;
+            const token = jwt.sign(body, process.env.JWT_TOKEN, { expiresIn: '1h' });
+            res
+                .cookie("access_token", token, {
+                    httpOnly: true,
+                    secure: false,
+
+                })
+                .status(200)
+                .send({ message: "Logged in successfully 😊 👌", token });
+        });
         // app.post('/services', async (req, res) => {
         //     const services = req.body
         //     const result = await serviceCollections.insertOne(services)
