@@ -32,7 +32,9 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
         const serviceCollections = client.db("geniusCarDB").collection("services")
+        const cartCollections = client.db("geniusCarDB").collection("cart")
         app.get('/services/:id', async (req, res) => {
+            console.log(req.query.page);
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await serviceCollections.findOne(query)
@@ -42,6 +44,17 @@ async function run() {
             const cursor = serviceCollections.find()
             const result = await cursor.toArray()
             console.log(result);
+            res.send(result)
+        })
+        app.get('/cart', async (req, res) => {
+            const cursor = cartCollections.find()
+            const result = await cursor.toArray()
+            console.log(result);
+            res.send(result)
+        })
+        app.post('/cart', async (req, res) => {
+            const services = req.body
+            const result = await cartCollections.insertOne(services)
             res.send(result)
         })
         // app.post('/services', async (req, res) => {
