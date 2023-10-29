@@ -41,28 +41,52 @@ async function run() {
         await client.connect();
         const serviceCollections = client.db("geniusCarDB").collection("services")
         const cartCollections = client.db("geniusCarDB").collection("cart")
+
+        const logger = async (req, res, next) => {
+            // req.host,req.originalUrl
+            next()
+        }
+
+        const veryfyToken = async (req, res, next) => {
+            const token = req.cookies?.access_token
+            if (!token) {
+                return res.status(401).send({ message: 'unathorized' })
+            }
+            jwt.verify(token, process.env.JWT_TOKEN, (err, decoded) => {
+                if (err) {
+                    console.log(err);
+                    return res.status(401).send({ message: 'unathorized' })
+                }
+                req.user = decoded
+                next()
+            })
+        }
         app.get('/services/:id', async (req, res) => {
-            console.log(req.query.page);
             const id = req.params.id
             const query = { _id: new ObjectId(id) }
             const result = await serviceCollections.findOne(query)
             res.send(result)
         })
-        app.get('/services', async (req, res) => {
+        app.get('/services', logger, veryfyToken, async (req, res) => {
             const cursor = serviceCollections.find()
             const result = await cursor.toArray()
-            console.log(result);
+            // console.log(result);
             res.send(result)
         })
-        app.get('/cart', async (req, res) => {
-            let query = {}
-            if (req.query?.email) {
-                query = { email: req.query.email }
-            }
-            const cursor = cartCollections.find()
-            const result = await cursor.toArray()
-            console.log(result);
-            res.send(result)
+        app.get('/cart', logger, veryfyToken, async (req, res) => {
+            // console.log(req.cookies.access_token);
+            // console.log(req.user);
+            // console.log(req.query.email);
+            const query = { email: req.query?.email }
+            console.log(query);
+            // let query = {};
+            // if (req.query?.email) {
+            //     query = { email: req.query.email }
+            //     console.log(query);
+            // }
+            const result = await cartCollections.find(query).toArray();
+            // console.log(result);
+            res.send(result);
         })
         app.post('/cart', async (req, res) => {
             const services = req.body
@@ -81,11 +105,6 @@ async function run() {
                 .status(200)
                 .send({ message: "Logged in successfully 😊 👌", token });
         });
-        // app.post('/services', async (req, res) => {
-        //     const services = req.body
-        //     const result = await serviceCollections.insertOne(services)
-        //     res.send(result)
-        // })
     } finally {
 
         // await client.close();
