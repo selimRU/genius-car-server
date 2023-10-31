@@ -54,7 +54,6 @@ async function run() {
             }
             jwt.verify(token, process.env.JWT_TOKEN, (err, decoded) => {
                 if (err) {
-                    console.log(err);
                     return res.status(401).send({ message: 'unathorized' })
                 }
                 req.user = decoded
@@ -67,9 +66,13 @@ async function run() {
             const result = await serviceCollections.findOne(query)
             res.send(result)
         })
-        app.get('/services', logger, veryfyToken, async (req, res) => {
-            const cursor = serviceCollections.find()
-            const result = await cursor.toArray()
+        app.get('/services', async (req, res) => {
+            const page = parseInt(req.query.page)
+            const size = parseInt(req.query.size)
+            const result = await serviceCollections.find()
+                .skip(page * size)
+                .limit(size)
+                .toArray()
             // console.log(result);
             res.send(result)
         })
@@ -78,7 +81,7 @@ async function run() {
             // console.log(req.user);
             // console.log(req.query.email);
             const query = { email: req.query?.email }
-            console.log(query);
+            //    i can do like this following
             // let query = {};
             // if (req.query?.email) {
             //     query = { email: req.query.email }
@@ -87,6 +90,12 @@ async function run() {
             const result = await cartCollections.find(query).toArray();
             // console.log(result);
             res.send(result);
+        })
+        app.get('/servicesCount', async (req, res) => {
+            const count = await serviceCollections.estimatedDocumentCount()
+            console.log(count);
+            // console.log(result);
+            res.send({ count });
         })
         app.post('/cart', async (req, res) => {
             const services = req.body
